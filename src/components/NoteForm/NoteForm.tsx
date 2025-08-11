@@ -1,8 +1,8 @@
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import type { FormikHelpers } from "formik";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Yup from "yup";
-import type { CreateNotePayload } from "../../services/noteService";
-// import type { NoteTag } from "../../types/note";
+import { type CreateNotePayload, createNote } from "../../services/noteService";
 import css from "./NoteForm.module.css";
 
 const NoteSchema = Yup.object().shape({
@@ -18,22 +18,38 @@ const NoteSchema = Yup.object().shape({
 
 interface NoteFormProps {
   onClose: () => void;
-  onSubmit: (values: CreateNotePayload) => void;
-  initialValues?: CreateNotePayload; 
 }
 
-const NoteForm = ({ onClose, onSubmit }: NoteFormProps) => {
+const NoteForm = ({ onClose }: NoteFormProps) => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (newNote: CreateNotePayload) => createNote(newNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onClose(); 
+    },
+  });
+
   const initialValues: CreateNotePayload = {
     title: "",
     content: "",
     tag: "Todo",
   };
-  
-  const handleSubmit = (values: CreateNotePayload, actions: FormikHelpers<CreateNotePayload>) => {
-    onSubmit(values);
-    actions.resetForm();
-    onClose();
-}
+
+  const handleSubmit = (
+    values: CreateNotePayload,
+    actions: FormikHelpers<CreateNotePayload>
+  ) => {
+    mutation.mutate(values, {
+      onSuccess: () => {
+        actions.resetForm(); 
+      },
+      onError: (error) => {
+        console.error("Error creating note:", error);
+      },
+    });
+  };
 
   return (
     <Formik
@@ -58,7 +74,11 @@ const NoteForm = ({ onClose, onSubmit }: NoteFormProps) => {
               rows={8}
               className={css.textarea}
             />
-            <ErrorMessage name="content" component="span" className={css.error} />
+            <ErrorMessage
+              name="content"
+              component="span"
+              className={css.error}
+            />
           </div>
 
           <div className={css.formGroup}>
@@ -77,8 +97,12 @@ const NoteForm = ({ onClose, onSubmit }: NoteFormProps) => {
             <button type="button" onClick={onClose} className={css.cancelButton}>
               Cancel
             </button>
-            <button type="submit" className={css.submitButton} disabled={isSubmitting}>
-              Create note
+            <button
+              type="submit"
+              className={css.submitButton}
+              disabled={isSubmitting || mutation.isPending} 
+            >
+              {mutation.isPending ? "Creating..." : "Create note"}
             </button>
           </div>
         </Form>

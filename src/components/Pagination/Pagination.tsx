@@ -4,11 +4,16 @@ import css from "./Pagination.module.css";
 interface PaginationProps {
   pageCount: number;
   onPageChange: (selectedPage: number) => void;
+  currentPage: number; 
 }
 
-const Pagination = ({ pageCount, onPageChange }: PaginationProps) => {
+const Pagination = ({
+  pageCount,
+  onPageChange,
+  currentPage,
+}: PaginationProps) => {
   const handlePageClick = (event: { selected: number }) => {
-    onPageChange(event.selected + 1); // react-paginate індексує сторінки з 0
+    onPageChange(event.selected + 1); 
   };
 
   return (
@@ -18,6 +23,7 @@ const Pagination = ({ pageCount, onPageChange }: PaginationProps) => {
       onPageChange={handlePageClick}
       pageRangeDisplayed={3}
       pageCount={pageCount}
+      forcePage={currentPage - 1} 
       previousLabel="←"
       renderOnZeroPageCount={null}
       containerClassName={css.pagination}
